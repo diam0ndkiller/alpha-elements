@@ -9,3 +9,5 @@ performance and tweak mod [OptiFine](https://optifine.net). In AlphaElements you
 other mods and enable or disable them to your needs in different 
 versions. When you're done, just launch the Minecraft Launcher 
 using the Play button.
+
+Thx to @CatfifikatorHD for the base idea and some help!
