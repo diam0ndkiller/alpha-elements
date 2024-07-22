@@ -40,7 +40,7 @@ pg.init()
 os.environ['SDL_VIDEO_WINDOW_POS'] = f'0,0'
 
 SCROLL_SPEED = 15
-VERSION = "V1.1"
+VERSION = "V1.1b"
 RELEASEDATE = "2024-07-22"
 WIDTH, HEIGHT, total_width, total_height, factor = init__surface((1000, 1000), (1000, 1000), 8, '1.0', True, 0, "AlphaElements Minecraft Launcher", "__RESOURCES__/alpha_elements/images/alpha_elements.png")
 init__logger("__LOGS__/" + time.strftime("%Y-%m-%d, %H-%M-%S") + ".log")
@@ -636,7 +636,7 @@ def quit():
 
 def play():
     global pro
-    if pro: return
+    #if pro: return
     if not CONFIG['version'] in CONFIG['profiles']: CONFIG['profiles'][CONFIG['version']] = Profile(CONFIG['version'])
     pro = CONFIG['profiles'][CONFIG['version']].launch()
     pg.display.iconify()
