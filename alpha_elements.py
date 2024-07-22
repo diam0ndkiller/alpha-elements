@@ -287,9 +287,6 @@ def install_forge(version):
             cmd.create_dir(f"{MC_DIR}/versions/{get_real_forge_install_folder(direct_forge_version)}")
             cmd.copy_file(f"./versions/{direct_forge_version}.jar", f"{MC_DIR}/versions/{get_real_forge_install_folder(direct_forge_version)}/{get_real_forge_install_folder(direct_forge_version)}.jar")'''
 
-    # TODO
-    exit(0)
-
     return get_real_forge_install_folder(direct_forge_version)
 
 
@@ -544,8 +541,8 @@ def update_version_list():
 
 def update_play_button():
     global BUTTONS_page, pro
-
-    if pro and not pro.poll():
+    print(pro)
+    if pro and pro.returncode == None:
         BUTTONS_page.set(play=Button(Surface((400, 100), Color(50, 50, 50)), Surface((400, 100), Color(75, 75, 75)), alt_text = "Minecraft Launcher is already running").set((590, 890), 2))
         BUTTONS_page.play.blit_all(Text("---running---", color=Color(255, 255, 255), font_size=1), (200, 10), (True, True))
     else:
@@ -630,7 +627,6 @@ def draw_page_about():
 
     draw(TEXTS_page.description)
     draw(TEXTS_page.license)
-    #TODO
 
 
 def quit():
@@ -689,11 +685,11 @@ while loop:
 
     for event in pg.event.get():
         # testing if minecraft process ended
-        #TODO
         if event.type == pg.WINDOWFOCUSGAINED and pro:
             time.sleep(1)
+            pro.poll()
             update_play_button()
-            if pro.poll():
+            if pro.returncode != None:
                 pro = False
 
         if event.type == pg.KEYDOWN:
