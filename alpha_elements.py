@@ -5,7 +5,13 @@ RUNDIR = os.path.realpath(__file__).split("/alpha_elements.py")[0]
 
 os.chdir(RUNDIR)
 
-from dcgf import *
+try:
+    from dcgf import *
+except:
+    try:
+        from dia_graphics import *
+    except:
+        print("Please download https://github.com/diam0ndkiller/dcgf graphics library.")
 
 try:
     import requests
@@ -33,6 +39,7 @@ pg.init()
 
 os.environ['SDL_VIDEO_WINDOW_POS'] = f'0,0'
 
+SCROLL_SPEED = 15
 VERSION = "V1.0"
 RELEASEDATE = "2024-01-28"
 WIDTH, HEIGHT, total_width, total_height, factor = init__surface((1000, 1000), (1000, 1000), 8, '1.0', True, 0, "AlphaElements Minecraft Launcher", "__RESOURCES__/alpha_elements/images/alpha_elements.png")
@@ -83,6 +90,8 @@ class Profile:
         pro = subprocess.Popen("minecraft-launcher", shell=True)
         setup_page_home()
 
+        return pro
+
     def __repr__(this):
         return f"Profile('{this.version}', '{this.name}', {str(this.mods)})"
 
@@ -124,7 +133,7 @@ def get_forge_versions():
                 else:
                     v = k
                     if not 'version' in CONFIG: CONFIG['version'] = v
-                VERSIONS.append(v)
+                if not "pre" in v and (int(v.split(".")[1]) > 5 or v == "1.5.2"): VERSIONS.append(v)
 
 
 def create_mc_profile(version_name: str, version_id: str):
@@ -193,15 +202,70 @@ def backup_mods():
         cmd.copy_file(f"{MC_DIR}/mods/{i}", f"{CONFIG_DIR}/mods/backup/")
         cmd.delete_file(f"{MC_DIR}/mods/{i}")
 
+def get_real_forge_install_folder(direct_forge_version):
+    mc_version = int(direct_forge_version.split(".")[1].split("-")[0])
+
+    mc_version_string = direct_forge_version.split("-")[0]
+    forge_version_string = direct_forge_version.split("-")[2]
+
+    # correct forge install folder for versions before 1.12
+    if mc_version > 11:
+        output = "{}-forge-{}".format(mc_version_string, forge_version_string)
+
+    elif mc_version > 7:
+        # correct wrong version prefix in forge 1.10 -> 1.10.0
+        mc_version_prefix = mc_version_string
+        if mc_version_prefix in ["1.10"]:
+            mc_version_prefix += ".0"
+        
+        # append version prefix to forge 1.10, 1.8.9, 1.9.4, 1.7.10
+        if mc_version_string in ["1.10", "1.8.9", "1.9.4", "1.7.10"]:
+            output = "{}-forge{}-{}-{}".format(mc_version_string, mc_version_string, forge_version_string, mc_version_prefix)
+        else:
+            output = "{}-forge{}-{}".format(mc_version_string, forge_version_string, mc_version_prefix)
+
+    elif mc_version_string == "1.7.10":
+        mc_version_prefix = mc_version_string
+
+        output = "{}-Forge{}-{}".format(mc_version_string, forge_version_string, mc_version_prefix)
+
+    elif mc_version_string == "1.7.2":
+        mc_version_prefix = "mc" + mc_version_string.replace(".", "")
+
+        output = "{}-Forge{}-{}".format(mc_version_string, forge_version_string, mc_version_prefix)
+
+    elif mc_version_string in ["1.6.1"]:
+        output = "Forge{}".format(forge_version_string)
+
+    else:#if mc_version_string in ["1.6.4", "1.6.3", "1.6.2", "1.5.2"]:
+        output = "{}-Forge{}".format(mc_version_string, forge_version_string)
+
+
+    print__debug(mc_version_string)
+    print__debug(output)
+
+    return output
+
+
 def install_forge(version):
     r = requests.get(f"https://files.minecraftforge.net/net/minecraftforge/forge/index_{version}.html")
 
     try:
         tag_A = r.content.decode().split('Download Recommended<br>\n')[1].split("<a")[1].split("</a>")[0]
     except:
+        print__info("Downloading latest instead of recommended forge version.")
         tag_A = r.content.decode().split('Download Latest<br>\n')[1].split("<a")[1].split("</a>")[0]
+        '''if not "jar" in tag_A:
+            print__info("Downloading game executable instead of installer.")
+            tags = r.content.decode().split('Download Latest<br>\n')[1].split("<a")
+            for i in tags:
+                if "universal.zip" in i or "client.zip" in i:
+                    tag_A = i.split("</a>")[0]
+                    break'''
 
-    link = tag_A.split('"')[1].split("url=")[1]
+    link = tag_A.split('"')[1]
+    if "url=" in link:
+        link = link.split("url=")[1]
 
     print__info("Downloading " + link)
 
@@ -209,7 +273,7 @@ def install_forge(version):
 
     direct_forge_version = forge_version.split("-")[0] + "-forge-" + forge_version.split("-")[1]
 
-    if not os.path.isdir(MC_DIR + "/versions/" + direct_forge_version):
+    if not os.path.isdir(MC_DIR + "/versions/" + get_real_forge_install_folder(direct_forge_version)):
         r = requests.get(link)
 
         cmd.create_dir(CONFIG_DIR + "/versions/")
@@ -217,9 +281,16 @@ def install_forge(version):
         with open(CONFIG_DIR + f"/versions/{direct_forge_version}.jar", "wb") as file:
             file.write(r.content)
 
-        os.system(f"java -jar ./versions/{direct_forge_version}.jar")
+        if "jar" in link:
+            os.system(f"java -jar ./versions/{direct_forge_version}.jar")
+        '''else:
+            cmd.create_dir(f"{MC_DIR}/versions/{get_real_forge_install_folder(direct_forge_version)}")
+            cmd.copy_file(f"./versions/{direct_forge_version}.jar", f"{MC_DIR}/versions/{get_real_forge_install_folder(direct_forge_version)}/{get_real_forge_install_folder(direct_forge_version)}.jar")'''
 
-    return direct_forge_version
+    # TODO
+    exit(0)
+
+    return get_real_forge_install_folder(direct_forge_version)
 
 
 def install_of(version):
@@ -568,9 +639,10 @@ def quit():
     exit(0)
 
 def play():
+    global pro
     if pro: return
     if not CONFIG['version'] in CONFIG['profiles']: CONFIG['profiles'][CONFIG['version']] = Profile(CONFIG['version'])
-    CONFIG['profiles'][CONFIG['version']].launch()
+    pro = CONFIG['profiles'][CONFIG['version']].launch()
     pg.display.iconify()
 
 
@@ -679,14 +751,14 @@ while loop:
                     if isinstance(i, ScrollableSurface) and i.get_mouse_collision():
                         if shift:
                             if event.button == 5:
-                                i.scroll(int(FACTOR * 10), 0)
+                                i.scroll(int(FACTOR * SCROLL_SPEED), 0)
                             elif event.button == 4:
-                                i.scroll(-int(FACTOR * 10), 0)
+                                i.scroll(-int(FACTOR * SCROLL_SPEED), 0)
                         else:
                             if event.button == 5:
-                                i.scroll(0, int(FACTOR * 10))
+                                i.scroll(0, int(FACTOR * SCROLL_SPEED))
                             elif event.button == 4:
-                                i.scroll(0, -int(FACTOR * 10))
+                                i.scroll(0, -int(FACTOR * SCROLL_SPEED))
                         break
 
         # if on home page
